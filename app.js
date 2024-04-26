@@ -28,20 +28,21 @@ app.use(session({
 
 
 app.post('/login', upload.none(), (req, res) => {
-    console.log(req.body)
     try {
         let user = checkUserPassword(req.body.username, req.body.password) 
         if ( user != null) {
             req.session.loggedIn = true
             req.session.username = req.body.username
+            req.session.userrole = user.role
             req.session.userid = user.userid
+
     
         //res.redirect('/');
         // Pseudocode - Adjust according to your actual frontend framework or vanilla JS
  
         } 
         if (user == null || !req.session.loggedIn) {
-            res.json(null);
+            res.status(401).json({ message: 'Unsuccessful login. Please try again.' });
         }
         else {res.json(user)}
 
@@ -53,26 +54,25 @@ app.post('/login', upload.none(), (req, res) => {
 
 })
 
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, "public/login.html"));
+});
+
+
 app.post('/register', (req, res) => {
-    console.log("registerUser", req.body);
     const reguser = req.body;
-    const user = addUser(reguser.firstname, reguser.lastname, reguser.username, reguser.email, reguser.password)
-    // Redirect to user list or confirmation page after adding user
-    if (user)   {
-        req.session.username = user.username
-        req.session.userid = user.userid
-        //res.redirect('/'); 
-        // Pseudocode - Adjust according to your actual frontend framework or vanilla JS
-
-
+    const user = addUser(reguser.firstname, reguser.lastname, reguser.username, reguser.email, reguser.password, reguser.role, reguser.klasse);
+    if (user) {
+        res.redirect('/app.html');
+    } else {
+        res.send(false);
     }
-    res.send(true)
 });
 
 
 
 function checkUserPassword(username, password){
-    const sql = db.prepare('SELECT user.id as userid, username');
+    const sql = db.prepare('SELECT user.id AS userid, username, role.id AS role, password FROM user INNER JOIN role ON user.idRole = role.id WHERE username = ?');
     let user = sql.get(username);
 if (user && bcrypt.compareSync(password, user.password)) {
         return user 
@@ -82,7 +82,6 @@ if (user && bcrypt.compareSync(password, user.password)) {
 }
 
 function checkLoggedIn(req, res, next) {
-    console.log('CheckLoggedIn')
     if (!req.session.loggedIn) {
         res.sendFile(path.join(__dirname, "\public\\login.html"));
     } else {
@@ -91,6 +90,60 @@ function checkLoggedIn(req, res, next) {
     
 }
 
+app.get('/roles', (req, res) => {
+    try {
+        const sql = db.prepare('SELECT * FROM role ORDER BY id DESC');
+        const roles = sql.all();
+        res.json({
+            "message":"success",
+            "data":roles
+        });
+    } catch (err) {
+        console.error('Error fetching roles from database:', err);
+        res.status(400).json({"error": err.message});
+    }
+});
+
+app.get('/klasse', (req, res) => {
+    try {
+        const sql = db.prepare('SELECT * FROM klasse ORDER BY id DESC');
+        const klasser = sql.all();
+        res.json({
+            "message":"success",
+            "data":klasser
+        });
+    } catch (err) {
+        console.error('Error fetching klasser from database:', err);
+        res.status(400).json({"error": err.message});
+    }
+});
+
+app.get('/delUser', (req, res) => {
+    try {
+        const sql = db.prepare('SELECT * FROM user ORDER BY idRole, idKlasse DESC'); //SORT BY ROLE FIRST, THEN KLASSE. REMEMBER IF QUESTIONS
+        const users = sql.all();
+        res.json({
+            "message":"success",
+            "data":users
+        });
+    } catch (err) {
+        console.error('Error fetching users from database:', err);
+        res.status(400).json({"error": err.message});
+    }
+});
+
+app.delete('/userDel/:id', (req, res) => {
+    const userId = req.params.id;
+    const sql = db.prepare('DELETE FROM user WHERE id = ?');
+    const result = sql.run(userId);
+    if (result.changes > 0) {
+        res.redirect('/app.html');
+    } else {
+        res.status(404).json({ message: 'User not found' });
+    }
+});
+
+//user-add er kanskje useless
 app.post('/user-add', (req, res) => {
     console.log(req.body)
     addUser(req.body.username, req.body.password)
@@ -104,14 +157,13 @@ app.get('/logout', (req, res) => {
 })
 
 
-function addUser(firstname, lastname, username, email, password){
+function addUser(firstname, lastname, username, email, password, idrole, idklasse){
     const hash = bcrypt.hashSync(password, saltRounds)
-    let sql = db.prepare("INSERT INTO user (firstname, lastname, username, email, password)" + 
-                         " values (?, ?, ?, ?, ?)")
-    const info = sql.run(firstname, lastname, username, email, hash)
+    let sql = db.prepare("INSERT INTO user (firstname, lastname, username, email, password, idrole, idklasse) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    const info = sql.run(firstname, lastname, username, email, hash, idrole, idklasse)
     
     //sql=db.prepare('select user.id as userid, username, task.id as taskid, timedone, task.name as task, task.points from done inner join task on done.idtask = task.id where iduser = ?)')
-    sql = db.prepare('SELECT user.id as userid FROM user');
+    sql = db.prepare('SELECT user.id AS userid, username, role.id AS role, klasse.id AS klasse FROM user INNER JOIN role ON user.idRole = role.id, klasse ON user.idKlasse = klasse.id WHERE user.id = ?');
     let rows = sql.all(info.lastInsertRowid)  
     console.log("rows.length", rows.length)
 
@@ -123,11 +175,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/currentUser', checkLoggedIn,  (req, res) => {// This will log the userid to the console
     console.log(`User ID: ${req.session.userid}`);
     console.log(`Username: ${req.session.username}`);
-    res.send([req.session.userid, req.session.username]);
+    console.log(`UserRole: ${req.session.userrole}`);
+    res.send([req.session.userid, req.session.username, req.session.userrole]);
 });
 
 app.get('/', checkLoggedIn, (req, res) => {
     res.sendFile(path.join(__dirname, 'public/login.html'));
+});
+
+app.get('/app.html', checkLoggedIn, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/app.html'));
 });
 
 app.listen(3000, () => {

@@ -1,10 +1,11 @@
 const loginForm = document.getElementById('loginForm');
 const loginFeedback = document.getElementById('loginFeedback');
 
+
 loginForm.addEventListener('submit', login)
 
 async function login(evt) {
-    evt.preventDefault(); // Prevent the default form submission
+    evt.preventDefault();
     try {
         const formData = new FormData(loginForm);
         const response = await fetch('/login', {
@@ -12,8 +13,15 @@ async function login(evt) {
             body: formData
         });
         
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message);
+        }
+
         const user = await response.json();
 
+        // Assuming the JSON response structure is { id: "someId", username: "someUsername" }
+        // Adjust this according to your actual response structure
         if (user){ 
             console.log(user);
             window.location.href = '/app.html'; 

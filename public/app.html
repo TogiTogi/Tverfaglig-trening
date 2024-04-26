@@ -10,21 +10,13 @@
     <header>
         <h2 id="loggedInAs"></h2>
     </header>
-    <!--
-    <form id="form1">
-        <h1>WAZAAAAAAAAP!!</h1>
-    </form>
-    <form id="form2">
-        <img class="small-image" title="imgSoT" src="img/Sea_of_Thieves_Screenshot.png">
-    </form>
-    -->
     <form id="registerForm" action="/register" method="POST">
         <h2>register</h2>
         <label for="firstname">First name:</label>
-        <input type="text" id="regFirstname" name="firstnane" title="regFirstname" required>
+        <input type="text" id="regFirstname" name="firstname" title="regFirstname">
         <br>
         <label for="lastname">Last name:</label>
-        <input type="text" id="regLastname" name="lastname" title="regLastname" required>
+        <input type="text" id="regLastname" name="lastname" title="regLastname">
         <br>
         <label for="username">Username:</label>
         <input type="text" id="regUsername" name="username" title="regUsername" required>
@@ -35,11 +27,37 @@
         <label for="password">Password:</label>
         <input type="password" id="regPassword" name="password" title="regPassword" required>
         <br>
-        <label for="roleID">Role ID:</label>
-        <input type="text" id="regRoleId" name="roleID" title="regRoleId" required>
+        <label for="role">Role:</label>
+        <select id="regRoleId" name="role" title="regRoleId" required></select>
+        <br>
+        <label for="klasse">Klasse:</label>
+        <select id="regKlasseId" name="klasse" title="regKlasseId" required></select>
         <br>
         <button id="regSubmit" type="submit">Register</button>
     </form>
+    <form id="delUserForm" action="/delUser" method="POST">
+        <label for="delUser">Delete user:</label>
+        <select id="delUserId" name="delUser" title="delUserId"></select>
+        <br>
+        <div id="delUserInfo"></div>
+        <button id="delUserSubmit" type="submit">Delete this user</button>
+    </form>
+  
+    
+
+    <form id="editUserForm">
+        <label for="editUser"> Edit user:</label>
+        <select id="editUser" name="editUser" title="editUser"></select>
+    </form>
+    <!--
+    <form id="form1">
+        <h1>WAZAAAAAAAAP!!</h1>
+    </form>
+    <form id="form2">
+        <img class="small-image" title="imgSoT" src="img/Sea_of_Thieves_Screenshot.png">
+    </form>
+    -->
+
     <br>
     <br>
     <form id="logoutForm" action='/logout' method="GET">

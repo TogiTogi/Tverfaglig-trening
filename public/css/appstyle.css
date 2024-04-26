@@ -46,7 +46,7 @@ header {
     text-align: center;
 }
 
-#form1, #form2, #registerForm {
+#registerForm, #delUserForm, #editUserForm {
     display: none;
 }
 
