@@ -13,7 +13,7 @@ label {
     margin: 10px 0;
 }
 
-input[type="text"], input[type="password"], input[type="email"], input[type="tel"] {
+input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="address"], input[type="number"] {
     width: 100%;
     padding: 10px;
     margin: 5px 0 15px;
@@ -46,7 +46,7 @@ header {
     text-align: center;
 }
 
-#registerForm, #delUserForm, #editUserForm {
+#registerForm, #delUserForm, #editUserForm, #GDPRtestForm{
     display: none;
 }
 

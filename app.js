@@ -13,7 +13,8 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-dotenv.config()
+app.use(express.json());
+dotenv.config();
 
 const saltRounds = 10
 const staticPath = path.join(__dirname, 'public')
@@ -61,7 +62,7 @@ app.get('/login', (req, res) => {
 
 app.post('/register', (req, res) => {
     const reguser = req.body;
-    const user = addUser(reguser.firstname, reguser.lastname, reguser.username, reguser.email, reguser.password, reguser.role, reguser.klasse);
+    const user = addUser(reguser.firstname, reguser.lastname, reguser.username, reguser.email, reguser.tel, reguser.address, reguser.password, reguser.role, reguser.klasse);
     if (user) {
         res.redirect('/app.html');
     } else {
@@ -118,7 +119,7 @@ app.get('/klasse', (req, res) => {
     }
 });
 
-app.get('/delUser', (req, res) => {
+app.get('/User', (req, res) => {
     try {
         const sql = db.prepare('SELECT * FROM user ORDER BY idRole, idKlasse DESC'); //SORT BY ROLE FIRST, THEN KLASSE. REMEMBER IF QUESTIONS
         const users = sql.all();
@@ -131,6 +132,41 @@ app.get('/delUser', (req, res) => {
         res.status(400).json({"error": err.message});
     }
 });
+
+app.put('/User/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const updatedUser = req.body;
+        // It takes the user's id and the new data as parameters
+        // And returns the updated user
+        const user = await updateUser(id, updatedUser);
+        
+        res.json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+function updateUser(id, updatedUser) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            UPDATE user
+            SET firstname = ?, lastname = ?, username = ?, email = ?, tel = ?, address = ?, idKlasse = ?, idRole = ?
+            WHERE id = ?
+        `;
+        const params = [updatedUser.firstname, updatedUser.lastname, updatedUser.username, updatedUser.email, updatedUser.tel, updatedUser.address, updatedUser.idKlasse, updatedUser.idRole, id];
+
+        const stmt = db.prepare(sql);
+        const result = stmt.run(params);
+
+        if (result.changes === 0) {
+            reject(new Error('No rows updated'));
+        } else {
+            resolve({ id: id, ...updatedUser });
+        }
+    });
+}
 
 app.delete('/userDel/:id', (req, res) => {
     const userId = req.params.id;
@@ -157,10 +193,10 @@ app.get('/logout', (req, res) => {
 })
 
 
-function addUser(firstname, lastname, username, email, password, idrole, idklasse){
+function addUser(firstname, lastname, username, email, tel, address, password, idrole, idklasse){
     const hash = bcrypt.hashSync(password, saltRounds)
-    let sql = db.prepare("INSERT INTO user (firstname, lastname, username, email, password, idrole, idklasse) VALUES (?, ?, ?, ?, ?, ?, ?)")
-    const info = sql.run(firstname, lastname, username, email, hash, idrole, idklasse)
+    let sql = db.prepare("INSERT INTO user (firstname, lastname, username, email, tel, address, password, idrole, idklasse) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    const info = sql.run(firstname, lastname, firstname +"."+ lastname, email, tel, address, hash, idrole, idklasse)
     
     //sql=db.prepare('select user.id as userid, username, task.id as taskid, timedone, task.name as task, task.points from done inner join task on done.idtask = task.id where iduser = ?)')
     sql = db.prepare('SELECT user.id AS userid, username, role.id AS role, klasse.id AS klasse FROM user INNER JOIN role ON user.idRole = role.id, klasse ON user.idKlasse = klasse.id WHERE user.id = ?');
